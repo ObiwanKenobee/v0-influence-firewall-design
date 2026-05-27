@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { generateText } from 'ai'
 import { createOpenAI } from '@ai-sdk/openai'
+import { analysisPrompts, extractJsonFromResponse, ensureScoreBounds } from '@/lib/llm-prompts'
 
 interface AnalysisRequest {
   content: string
@@ -61,99 +62,53 @@ export async function POST(request: Request) {
     // Analyze toxicity
     const toxicityResponse = await generateText({
       model: openai('gpt-4o-mini'),
-      prompt: `Analyze the following content for toxicity, hate speech, and harmful language. Rate on a scale of 0-100 where 0 is completely non-toxic and 100 is extremely toxic. Provide a JSON response with this exact format:
-{
-  "score": <number>,
-  "details": "<explanation>"
-}
-
-Content to analyze:
-"${body.content.substring(0, 1000)}"`,
+      prompt: analysisPrompts.toxicity(body.content),
       temperature: 0.3,
     })
 
     let toxicityData = { score: 0, details: 'Unable to analyze' }
-    try {
-      const toxicityJson = toxicityResponse.text.match(/\{[\s\S]*\}/)
-      if (toxicityJson) {
-        toxicityData = JSON.parse(toxicityJson[0])
-      }
-    } catch {
-      console.error('[v0] Failed to parse toxicity response')
+    const parsedToxicity = extractJsonFromResponse(toxicityResponse.text)
+    if (parsedToxicity) {
+      toxicityData = parsedToxicity
     }
 
     // Analyze misinformation
     const misinformationResponse = await generateText({
       model: openai('gpt-4o-mini'),
-      prompt: `Analyze the following content for misinformation, false claims, and misleading statements. Rate on a scale of 0-100 where 0 means completely factual and 100 means completely false or misleading. Provide a JSON response with this exact format:
-{
-  "score": <number>,
-  "details": "<explanation>"
-}
-
-Content to analyze:
-"${body.content.substring(0, 1000)}"`,
+      prompt: analysisPrompts.misinformation(body.content),
       temperature: 0.3,
     })
 
     let misinformationData = { score: 0, details: 'Unable to analyze' }
-    try {
-      const misinformationJson = misinformationResponse.text.match(/\{[\s\S]*\}/)
-      if (misinformationJson) {
-        misinformationData = JSON.parse(misinformationJson[0])
-      }
-    } catch {
-      console.error('[v0] Failed to parse misinformation response')
+    const parsedMisinformation = extractJsonFromResponse(misinformationResponse.text)
+    if (parsedMisinformation) {
+      misinformationData = parsedMisinformation
     }
 
     // Analyze manipulation patterns
     const manipulationResponse = await generateText({
       model: openai('gpt-4o-mini'),
-      prompt: `Analyze the following content for manipulation tactics, dark patterns, emotional manipulation, and persuasion tactics designed to exploit human psychology. Rate on a scale of 0-100 where 0 means no manipulation and 100 means extremely manipulative. Provide a JSON response with this exact format:
-{
-  "score": <number>,
-  "details": "<explanation>"
-}
-
-Content to analyze:
-"${body.content.substring(0, 1000)}"`,
+      prompt: analysisPrompts.manipulation(body.content),
       temperature: 0.3,
     })
 
     let manipulationData = { score: 0, details: 'Unable to analyze' }
-    try {
-      const manipulationJson = manipulationResponse.text.match(/\{[\s\S]*\}/)
-      if (manipulationJson) {
-        manipulationData = JSON.parse(manipulationJson[0])
-      }
-    } catch {
-      console.error('[v0] Failed to parse manipulation response')
+    const parsedManipulation = extractJsonFromResponse(manipulationResponse.text)
+    if (parsedManipulation) {
+      manipulationData = parsedManipulation
     }
 
     // Analyze values alignment (neutral baseline)
     const valuesAlignmentResponse = await generateText({
       model: openai('gpt-4o-mini'),
-      prompt: `Analyze the following content's alignment with universal values of human dignity, truthfulness, autonomy, and wellbeing. Rate on a scale of 0-100 where 0 means completely violates these values and 100 means strongly aligns with these values. Provide a JSON response with this exact format:
-{
-  "score": <number>,
-  "details": "<explanation>"
-}
-
-Content to analyze:
-"${body.content.substring(0, 1000)}"`,
+      prompt: analysisPrompts.valuesAlignment(body.content),
       temperature: 0.3,
     })
 
     let valuesAlignmentData = { score: 50, details: 'Unable to analyze' }
-    try {
-      const valuesAlignmentJson = valuesAlignmentResponse.text.match(
-        /\{[\s\S]*\}/
-      )
-      if (valuesAlignmentJson) {
-        valuesAlignmentData = JSON.parse(valuesAlignmentJson[0])
-      }
-    } catch {
-      console.error('[v0] Failed to parse values alignment response')
+    const parsedValuesAlignment = extractJsonFromResponse(valuesAlignmentResponse.text)
+    if (parsedValuesAlignment) {
+      valuesAlignmentData = parsedValuesAlignment
     }
 
     // Store analysis results
@@ -162,19 +117,13 @@ Content to analyze:
       .insert({
         content_id: contentData.id,
         user_id: user.id,
-        toxicity_score: Math.min(100, Math.max(0, toxicityData.score)),
+        toxicity_score: ensureScoreBounds(toxicityData.score),
         toxicity_details: toxicityData.details,
-        misinformation_score: Math.min(
-          100,
-          Math.max(0, misinformationData.score)
-        ),
+        misinformation_score: ensureScoreBounds(misinformationData.score),
         misinformation_details: misinformationData.details,
-        manipulation_score: Math.min(100, Math.max(0, manipulationData.score)),
+        manipulation_score: ensureScoreBounds(manipulationData.score),
         manipulation_details: manipulationData.details,
-        values_alignment_score: Math.min(
-          100,
-          Math.max(0, valuesAlignmentData.score)
-        ),
+        values_alignment_score: ensureScoreBounds(valuesAlignmentData.score),
         values_alignment_details: valuesAlignmentData.details,
       })
       .select()
