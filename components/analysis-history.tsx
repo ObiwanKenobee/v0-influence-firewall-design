@@ -2,6 +2,7 @@
 
 import { Card } from '@/components/ui/card'
 import { formatDistanceToNow } from 'date-fns'
+import Link from 'next/link'
 
 interface HistoryItem {
   id: string
@@ -55,10 +56,10 @@ export default function AnalysisHistory({ items }: AnalysisHistoryProps) {
   return (
     <div className="space-y-4">
       {items.map((item) => (
-        <Card
-          key={item.id}
-          className="bg-slate-800 border-slate-700 p-4 hover:border-slate-600 transition-colors"
-        >
+        <Link key={item.id} href={`/dashboard/analysis/${item.id}`}>
+          <Card
+            className="bg-slate-800 border-slate-700 p-4 hover:border-slate-600 transition-colors cursor-pointer"
+          >
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Content Preview */}
             <div className="md:col-span-2">
@@ -122,7 +123,8 @@ export default function AnalysisHistory({ items }: AnalysisHistoryProps) {
               </div>
             </div>
           </div>
-        </Card>
+          </Card>
+        </Link>
       ))}
     </div>
   )

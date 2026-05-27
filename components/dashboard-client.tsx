@@ -8,7 +8,8 @@ import { createClient } from '@/lib/supabase/client'
 import ContentInput from './content-input'
 import AnalysisResults from './analysis-results'
 import AnalysisHistory from './analysis-history'
-import { LogOut } from 'lucide-react'
+import { LogOut, Settings } from 'lucide-react'
+import Link from 'next/link'
 
 interface AnalysisData {
   contentId: string
@@ -130,14 +131,26 @@ export default function DashboardClient({
             Analyze digital content for manipulation, toxicity, and values alignment
           </p>
         </div>
-        <Button
-          onClick={handleLogout}
-          variant="ghost"
-          className="text-slate-400 hover:text-white"
-        >
-          <LogOut className="w-4 h-4 mr-2" />
-          Logout
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            asChild
+            variant="ghost"
+            className="text-slate-400 hover:text-white"
+          >
+            <Link href="/dashboard/settings">
+              <Settings className="w-4 h-4 mr-2" />
+              Settings
+            </Link>
+          </Button>
+          <Button
+            onClick={handleLogout}
+            variant="ghost"
+            className="text-slate-400 hover:text-white"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Logout
+          </Button>
+        </div>
       </div>
 
       {/* Main Content */}
