@@ -1,0 +1,81 @@
+
+{
+  "manifest_version": 3,
+  "name": "Influence Firewall - Digital Defense",
+  "version": "1.0.0",
+  "description": "Protect your digital sovereignty. Detect and analyze manipulation, toxicity, and misinformation in real-time.",
+  "permissions": [
+    "scripting",
+    "webRequest",
+    "tabs",
+    "storage",
+    "activeTab",
+    "webNavigation"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "icons": {
+    "16": "images/icon-16.png",
+    "48": "images/icon-48.png",
+    "128": "images/icon-128.png"
+  },
+  "action": {
+    "default_popup": "popup/index.html",
+    "default_icon": {
+      "16": "images/icon-16.png",
+      "48": "images/icon-48.png",
+      "128": "images/icon-128.png"
+    },
+    "default_title": "Influence Firewall"
+  },
+  "background": {
+    "service_worker": "background/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://twitter.com/*",
+        "https://x.com/*",
+        "https://reddit.com/*",
+        "https://www.reddit.com/*",
+        "https://facebook.com/*",
+        "https://www.facebook.com/*",
+        "https://youtube.com/*",
+        "https://www.youtube.com/*",
+        "https://news.google.com/*",
+        "https://*.news.google.com/*",
+        "<all_urls>"
+      ],
+      "js": ["content/content.js"],
+      "css": ["content/content.css"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["inject/inject.js"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "options_page": "options/options.html",
+  "oauth2": {
+    "client_id": "YOUR_CLIENT_ID.apps.googleusercontent.com",
+    "scopes": ["email", "profile"]
+  },
+  "commands": {
+    "analyze-page": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+A",
+        "mac": "Command+Shift+A"
+      },
+      "description": "Analyze current page for influence attacks"
+    },
+    "analyze-selection": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Analyze selected text"
+    }
+  }
+}
